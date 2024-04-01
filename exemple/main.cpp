@@ -15,8 +15,7 @@ void setup() {
 }
 
 void loop() {
-  // Lecture du l'entrée Analogique
-  //GetValueADC(nbrLecture);
+  // fonction à placer dans le loop
   ACS712.ReadSensorADC();
   
   Serial.print("Courant Max : ");
@@ -24,10 +23,11 @@ void loop() {
   Serial.println("A");
   Serial.print("Courant Eff : ");
   Serial.print(ACS712.GetCourantEff());
-  Serial.println("A");/*
-  Serial.print(MargeErreur());
-  Serial.println("%");
-  Serial.println("-----------------");*/
+  Serial.println("A");
+  Serial.print("Puissance : ");
+  Serial.print(ACS712.GetPuissance());
+  Serial.println("W");
+  Serial.println("-----------------");
 
   delay(2000);
 }
