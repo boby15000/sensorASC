@@ -19,14 +19,18 @@ class sensorACS
 
     void SetTension(float value);
     void ReadSensorADC();
-    float GetCourant();
+    float GetCourantCrete();
+    float GetCourantEff();
     float GetPuissance();
 
   private :
     byte _PinSensor;
-    byte pin_sensor_ref;
+    byte _PinSensor_refU;
     int _Sensibilite;
-
+    float _Frequence;
+    float _Tension;
+    float _Courant;
+    float _TensionRef;
 };
 
 #endif
