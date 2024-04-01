@@ -26,11 +26,13 @@ class sensorACS
   private :
     byte _PinSensor;
     byte _PinSensor_refU;
-    int _Sensibilite;
+    float _Sensibilite;
     float _Frequence;
     float _Tension;
     float _Courant;
     float _TensionRef;
+    int Echantillonnage(float frequence);
+
 };
 
 #endif

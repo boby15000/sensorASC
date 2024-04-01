@@ -2,7 +2,9 @@
 #include "sensorACS.h"
 #endif
 
+#include <simpleMinuteur.h>
 
+simpleMinuteur minuteur(50);
 
 /**
  * Constructeur
@@ -69,17 +71,15 @@ void sensorACS::SetTension(float value){
 void sensorACS::ReadSensorADC(){
     int valeur = 0;
     int valeurMax = 0;
-    //minuteur.demarrer();
-    //while ( !minuteur.estTermine() ){
+    minuteur.demarrer(this->Echantillonnage(this->_Frequence));
+    while ( !minuteur.estTermine() ){
     valeur = analogRead( this->_PinSensor );
         if ( valeur > valeurMax ) {
             valeurMax = valeur;
         }
-    //}
-
-    this->_Courant = valeurMax;
+    }
     this->_TensionRef =  analogRead(this->_PinSensor_refU);
-
+    this->_Courant = max(valeurMax, (this->_TensionRef/2));
 }
 
 
@@ -88,7 +88,7 @@ void sensorACS::ReadSensorADC(){
  * Return : la valeur Crete du Courant
 */
 float sensorACS::GetCourantCrete(){
-    return this->_Courant ; //((this->_Courant-(this->_TensionRef/2))/((this->_Sensibilite/1000)*1024/5));
+    return (this->_Courant-(this->_TensionRef/2))/((this->_Sensibilite/1000)*1024/5);
 }
 
 /**
@@ -107,3 +107,10 @@ float sensorACS::GetPuissance(){
     return (this->GetCourantEff() * this->_Tension);
 }
 
+/**
+ * Function
+ * Return : le temps d'une période utilisé pour la durée de lecture de l'entrée analogique
+*/
+int sensorACS::Echantillonnage(float frequence){
+    return (1/max(frequence, 20))*1000;
+}
