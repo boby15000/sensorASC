@@ -4,82 +4,35 @@
 
 #include <simpleMinuteur.h>
 
-simpleMinuteur minuteur(50);
+const byte UNITE_VOLT = 1 ;
+const byte UNITE_AMPERE = 2 ;
+const int TENSION_MAX_ADC = 1024; 
+
+simpleMinuteur minuteur(20);
 
 /**
  * Constructeur
- * @sensibilite : sensibilité du capteur en mV
  * @pin_sensor : entrée analogique du capteur
+ * @sensibilite : sensibilité du capteur
+ * @unite_sensibilite : unité de la sensibilité Volt ou Ampère
+ * @frequence : fréquence du réseau mesuré (par défaut 50hz)
+ * @tension : tension du réseau mesuré (par défaut 230V)
 */
-sensorACS::sensorACS(float sensibilite, byte pin_sensor){
-   this->_Sensibilite = sensibilite;
+sensorACS::sensorACS(byte pin_sensor, float sensibilite, byte unite_sensibilite, float frequence = 50, float tension = 230){
    this->_PinSensor = pin_sensor;
+   this->_Sensibilite = sensibilite;
+   this->_UniteSensibilite = unite_sensibilite;
+   this->_Echantillonnage = (1/max(frequence, 50))*1000;
+   this->_Tension = tension;
+   this->_TensionRef = TENSION_MAX_ADC/2;
 }
-
-/**
- * Constructeur
- * @sensibilite : sensibilité du capteur en mV
- * @pin_sensor : entrée analogique du capteur
- * @pin_sensor_ref_U : entrée analogique pour refence de tension
-*/
-sensorACS::sensorACS(float sensibilite, byte pin_sensor, byte pin_sensor_ref_U){
-    this->_Sensibilite = sensibilite;
-    this->_PinSensor = pin_sensor;
-    this->_PinSensor_refU = pin_sensor_ref_U;
-}
-
-/**
- * Constructeur
- * @sensibilite : sensibilité du capteur en mV
- * @pin_sensor : entrée analogique du capteur
- * @frequence : valeur de la fréquence pour tension alternative
-*/
-sensorACS::sensorACS(float sensibilite, byte pin_sensor, float frequence){
-    this->_Sensibilite = sensibilite;
-    this->_PinSensor = pin_sensor;
-    this->_Frequence = frequence;
-}
-
-/**
- * Constructeur
- * @sensibilite : sensibilité du capteur en mV
- * @pin_sensor : entrée analogique du capteur
- * @frequence : valeur de la fréquence pour tension alternative
- * @pin_sensor_ref_U : entrée analogique pour refence de tension
-*/
-sensorACS::sensorACS(float sensibilite, byte pin_sensor, float frequence, byte pin_sensor_ref_U){
-    this->_Sensibilite = sensibilite;
-    this->_PinSensor = pin_sensor;
-    this->_Frequence = frequence;
-    this->_PinSensor_refU = pin_sensor_ref_U;
-}
-
 
 /**
  * Void
- * @value : valeur de la tension (utiliser pour le calcul de la puissance)
+ * Lecture de l'entrée analogique du capteur de courant sans circulation de courant
 */
-void sensorACS::SetTension(float value){
-    this->_Tension = value;
-}
-
-
-/**
- * Void
- * Lecture de l'entrée analogique du capteur de courant
-*/
-void sensorACS::ReadSensorADC(){
-    int valeur = 0;
-    int valeurMax = 0;
-    minuteur.demarrer(this->Echantillonnage(this->_Frequence));
-    while ( !minuteur.estTermine() ){
-    valeur = analogRead( this->_PinSensor );
-        if ( valeur > valeurMax ) {
-            valeurMax = valeur;
-        }
-    }
-    this->_TensionRef =  analogRead(this->_PinSensor_refU);
-    this->_Courant = max(valeurMax, (this->_TensionRef/2));
+void sensorACS::Etalonnage(){
+    this->_TensionRef = this->ReadingSensor();
 }
 
 
@@ -88,7 +41,18 @@ void sensorACS::ReadSensorADC(){
  * Return : la valeur Crete du Courant
 */
 float sensorACS::GetCourantCrete(){
-    return (this->_Courant-(this->_TensionRef/2))/((this->_Sensibilite/1000)*1024/5);
+    int valueTension = this->ReadingSensor();
+    switch (true)
+    {
+    case 1:
+        /* Sensibilité en Volt */
+        return (valueTension-(this->_TensionRef))/((this->_Sensibilite/1000)*TENSION_MAX_ADC/5);
+        break;
+        /* Sensibilité en Ampere */
+    default:
+        return (valueTension-(this->_TensionRef))*(this->_Sensibilite*TENSION_MAX_ADC/5);
+        break;
+    }   
 }
 
 /**
@@ -109,8 +73,17 @@ float sensorACS::GetPuissance(){
 
 /**
  * Function
- * Return : le temps d'une période utilisé pour la durée de lecture de l'entrée analogique
+ * Return : la valeur numérique du Courant
 */
-int sensorACS::Echantillonnage(float frequence){
-    return (1/max(frequence, 20))*1000;
+int sensorACS::ReadingSensor(){
+    int valeur = 0;
+    int valeurMax = 0;
+    minuteur.demarrer(this->_Echantillonnage);
+    while ( !minuteur.estTermine() ){
+    valeur = analogRead( this->_PinSensor );
+        if ( valeur > valeurMax ) {
+            valeurMax = valeur;
+        }
+    }
+    return valeurMax;
 }

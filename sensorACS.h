@@ -12,27 +12,22 @@ class sensorACS
 {
   public :
     // contructeur
-    sensorACS(float sensibilite, byte pin_sensor);
-    sensorACS(float sensibilite, byte pin_sensor, byte pin_sensor_ref_U);
-    sensorACS(float sensibilite, byte pin_sensor, float frequence);
-    sensorACS(float sensibilite, byte pin_sensor, float frequence, byte pin_sensor_ref_U);
+    sensorACS(byte pin_sensor, float sensibilite, byte unite_sensibilite, float frequence = 50, float tension = 230);
 
-    void SetTension(float value);
-    void ReadSensorADC();
+    void Etalonnage();
     float GetCourantCrete();
     float GetCourantEff();
     float GetPuissance();
 
   private :
     byte _PinSensor;
-    byte _PinSensor_refU;
     float _Sensibilite;
-    float _Frequence;
+    byte _UniteSensibilite;
     float _Tension;
-    float _Courant;
-    float _TensionRef;
-    int Echantillonnage(float frequence);
+    int _Echantillonnage;
+    int _TensionRef;
 
+    int ReadingSensor();
 };
 
 #endif
