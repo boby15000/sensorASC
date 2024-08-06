@@ -1,22 +1,20 @@
 #include <Arduino.h>
-#include <sensorACS.h>
+#include <sensorCurrent.h>
 
 // DEFINITION DES PINS
 byte PIN_CAPTEUR_COURANT = A0;
-byte PIN_CAPTEUR_REF_TENSION = A1;
-byte SENSIBILITE_CAPT = 100;
-byte FREQUENCE = 50;
+byte SENSIBILITE_CAPT_ASC = 100;
 
-sensorACS ACS712(PIN_CAPTEUR_COURANT,SENSIBILITE_CAPT, 1);
+sensorCurrent ACS712(PIN_CAPTEUR_COURANT, SENSIBILITE_CAPT_ASC, 1); 
 
 void setup() {
   Serial.begin(9600);
-  //ACS712.Etalonnage();
 }
 
 void loop() {
-  // Lecture du l'entrée Analogique
- 
+
+  Serial.print("ADC Value : ");
+  Serial.println(ACS712.GetADC());
   Serial.print("Courant Max : ");
   Serial.print(ACS712.GetCourantCrete());
   Serial.println("A");
@@ -27,6 +25,5 @@ void loop() {
   Serial.print(ACS712.GetPuissance());
   Serial.println("W");
   Serial.println("-----------------");
-
   delay(2000);
 }

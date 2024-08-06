@@ -1,5 +1,5 @@
-#ifndef sensorACS_h
-#include "sensorACS.h"
+#ifndef sensorCurrent_h
+#include "sensorCurrent.h"
 #endif
 
 #include <simpleMinuteur.h>
@@ -10,17 +10,19 @@ const int TENSION_MAX_ADC = 1024;
 
 simpleMinuteur minuteur(20);
 
+int valueADC;
+
 /**
  * Constructeur
  * @pin_sensor : entrée analogique du capteur
  * @sensibilite : sensibilité du capteur
- * @unite_sensibilite : unité de la sensibilité Volt ou Ampère
+ * @unite_sensibilite : unité de la sensibilité Volt=1 ou Ampère=0
  * @frequence : fréquence du réseau mesuré (par défaut 50hz)
  * @tension : tension du réseau mesuré (par défaut 230V)
 */
-sensorACS::sensorACS(byte pin_sensor, float sensibilite, byte unite_sensibilite, float frequence = 50, float tension = 230){
+sensorCurrent::sensorCurrent(byte pin_sensor, float sensibilite, byte unite_sensibilite, float frequence, float tension){
    this->_PinSensor = pin_sensor;
-   this->_Sensibilite = sensibilite;
+   this->_Sensibilite= sensibilite;
    this->_UniteSensibilite = unite_sensibilite;
    this->_Echantillonnage = (1/max(frequence, 50))*1000;
    this->_Tension = tension;
@@ -31,26 +33,37 @@ sensorACS::sensorACS(byte pin_sensor, float sensibilite, byte unite_sensibilite,
  * Void
  * Lecture de l'entrée analogique du capteur de courant sans circulation de courant
 */
-void sensorACS::Etalonnage(){
+void sensorCurrent::Etalonnage(){
     this->_TensionRef = this->ReadingSensor();
 }
 
+/**
+ * Void
+ * Retourne la valeur de l'entrée analogique brute du capteur de courant
+*/
+int sensorCurrent::GetADC(){
+    return this->ReadingSensor();
+}
 
 /**
  * Function
  * Return : la valeur Crete du Courant
+ * Nota : Prend en compte le Facteur de Sensibilité pour ajuster le Zéro à vide et le Facteur de Correction par ajuster l'intensité en charge.
 */
-float sensorACS::GetCourantCrete(){
+float sensorCurrent::GetCourantCrete(){
     int valueTension = this->ReadingSensor();
-    switch (true)
+    int tensionCaptADC = abs(valueTension-this->_TensionRef);
+    if ( tensionCaptADC <= this->FacteurDeSensibilite ) return 0;
+    switch (this->_UniteSensibilite)
     {
     case 1:
         /* Sensibilité en Volt */
-        return (valueTension-(this->_TensionRef))/((this->_Sensibilite/1000)*TENSION_MAX_ADC/5);
+        //return tensionCaptADC;
+        return (tensionCaptADC)/((this->_Sensibilite/1000)*TENSION_MAX_ADC/5)*this->FacteurDeCorrection;
         break;
         /* Sensibilité en Ampere */
     default:
-        return (valueTension-(this->_TensionRef))*(this->_Sensibilite*TENSION_MAX_ADC/5);
+        return (tensionCaptADC)*(this->_Sensibilite*5/TENSION_MAX_ADC)*this->FacteurDeCorrection;
         break;
     }   
 }
@@ -59,7 +72,7 @@ float sensorACS::GetCourantCrete(){
  * Function
  * Return : la valeur Efficace du Courant
 */
-float sensorACS::GetCourantEff(){
+float sensorCurrent::GetCourantEff(){
     return this->GetCourantCrete()/sqrt(2);
 }
 
@@ -67,7 +80,7 @@ float sensorACS::GetCourantEff(){
  * Function
  * Return : puissance consommé
 */
-float sensorACS::GetPuissance(){
+float sensorCurrent::GetPuissance(){
     return (this->GetCourantEff() * this->_Tension);
 }
 
@@ -75,15 +88,14 @@ float sensorACS::GetPuissance(){
  * Function
  * Return : la valeur numérique du Courant
 */
-int sensorACS::ReadingSensor(){
+int sensorCurrent::ReadingSensor(){
     int valeur = 0;
     int valeurMax = 0;
     minuteur.demarrer(this->_Echantillonnage);
     while ( !minuteur.estTermine() ){
-    valeur = analogRead( this->_PinSensor );
-        if ( valeur > valeurMax ) {
-            valeurMax = valeur;
-        }
+        valeur = analogRead( this->_PinSensor );
+        valeurMax = max(valeurMax , valeur);
     }
-    return valeurMax;
+    if ( abs(valeurMax - valueADC) > this->FacteurDeSensibilite ) valueADC = valeurMax;
+    return valueADC;
 }
